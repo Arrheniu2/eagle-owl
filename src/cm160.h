@@ -31,6 +31,22 @@ struct cm160_device {
   int epout; // OUT end point address
 };
 
+struct record_data {
+  int addr;
+  int year;
+  int month;
+  int day;
+  int hour;
+  int min;
+  double cost;
+  double amps;
+  double watts;
+  double ah; // watt hour and ampere hour are the units used inside the db
+  double wh;
+  bool isLiveData; // Flag used to know is this record is the live conumption 
+                   // or the mean consumption (for the DB)
+};
+
 // CM160 protocol
 #define FRAME_ID_LIVE 0x51 
 #define FRAME_ID_DB   0x59 // value used to store in the DB (ch1_kw_avg)

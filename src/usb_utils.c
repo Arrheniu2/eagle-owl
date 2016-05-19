@@ -20,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <usb.h>
 #include "cm160.h"
 

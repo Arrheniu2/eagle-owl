@@ -31,7 +31,7 @@
 
 #include "cm160.h"
 #include "usb_utils.h"
-#include "db.h"
+//#include "db.h"
 #include "demonize.h"
 
 static char ID_MSG[11] = { 
@@ -71,14 +71,14 @@ static void process_live_data(struct record_data *rec)
   else
     _watts = w;
 
-  FILE *fp =  fopen(".live", "w");
+/*  FILE *fp =  fopen("bds/.live", "w");
   if(fp)
   {
     if(rec->hour!=255) // to avoid writing strange values (i.e. date 2255, hour 255:255) that sometimes I got
       fprintf(fp, "%02d/%02d/%04d %02d:%02d - %.02f kW\n", 
               rec->day, rec->month, rec->year, rec->hour, rec->min, w);
     fclose(fp);
-  }
+  }*/
 }
 
 static void decode_frame(unsigned char *frame, struct record_data *rec)
@@ -99,7 +99,7 @@ static void decode_frame(unsigned char *frame, struct record_data *rec)
 }
 
 // Insert history into DB worker thread
-void insert_db_history(void *data)
+/*void insert_db_history(void *data)
 {
   int i;
   int num_elems = (int)data;
@@ -133,7 +133,7 @@ void insert_db_history(void *data)
   fflush(stdout);
   printf("update db in %4.2f seconds\n", 
          (clock() - cStartClock) / (double)CLOCKS_PER_SEC);
-}
+}*/
 
 bool receive_history = true;
 int frame_id = 0;
@@ -197,7 +197,10 @@ static int process_frame(int dev_id, unsigned char *frame)
         { // print progression status
           // rough estimation : we should received a month of history
           // -> 31x24x60 minute records
-          printf("\r %.1f%%", min(100, 100*((double)frame_id/(31*24*60))));
+//	printf("fid: %d calc: %d\n",frame_id,100*frame_id/(31*24*60));
+//	if (((100*frame_id/(31*24*60)) % 10)==0)
+//		printf(".");
+//          printf("\r %.1f%%", min(100, 100*((double)frame_id/(31*24*60))));
           fflush(stdout);
         }
         // cache the history in a buffer, we will insert it in the db later.
@@ -205,8 +208,8 @@ static int process_frame(int dev_id, unsigned char *frame)
       }
       else
       {
-        db_insert_hist(&rec);
-        db_update_status();
+//        db_insert_hist(&rec);
+//        db_update_status();
         process_live_data(&rec); // the record is not live data, but we do that to
                                  // update the time in the .live file
                                  // (the cm160 send a DB frame when a new minute starts)
@@ -221,8 +224,8 @@ static int process_frame(int dev_id, unsigned char *frame)
         fflush(stdout);
         receive_history = false;
         // Now, insert the history into the db
-        pthread_t thread;
-        pthread_create(&thread, NULL, (void *)&insert_db_history, (void *)frame_id);
+/*        pthread_t thread;
+        pthread_create(&thread, NULL, (void *)&insert_db_history, (void *)frame_id);*/
       }
       
       process_live_data(&rec);
@@ -321,7 +324,7 @@ int main(int argc, char **argv)
 
   while(1)
   {
-    db_open();
+    //db_open();
     dev_cnt = 0;
     receive_history = true;
     frame_id = 0;
@@ -334,12 +337,12 @@ int main(int argc, char **argv)
     if(!(g_devices[0].hdev = usb_open(g_devices[0].usb_dev)))
     {
       fprintf(stderr, "failed to open device\n");
-      db_close();
+      //db_close();
       break;
     }
     handle_device(0); 
     usb_close(g_devices[0].hdev);
-    db_close();
+    //db_close();
   }
 
   return 0;
