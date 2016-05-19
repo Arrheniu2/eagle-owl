@@ -98,42 +98,6 @@ static void decode_frame(unsigned char *frame, struct record_data *rec)
   rec->isLiveData = (frame[0] == FRAME_ID_LIVE)? true:false;
 }
 
-// Insert history into DB worker thread
-/*void insert_db_history(void *data)
-{
-  int i;
-  int num_elems = (int)data;
-  // For an unknown reason, the cm160 sometimes sends a value > 12 for month
-  // -> in that case we use the last valid month received.
-  static int last_valid_month = 0; 
-  printf("insert %d elems\n", num_elems);
-  printf("insert into db...\n");
-  clock_t cStartClock = clock();
-
-  db_begin_transaction();
-  for(i=0; i<num_elems; i++)
-  {
-    unsigned char *frame = history[i];
-    struct record_data rec;
-    decode_frame(frame, &rec);
-
-    if(rec.month < 0 || rec.month > 12)
-      rec.month = last_valid_month;
-    else
-      last_valid_month = rec.month;
-
-    db_insert_hist(&rec);
-    printf("\r %.1f%%", min(100, 100*((double)i/num_elems)));
-    fflush(stdout);
-  }
-  db_update_status();
-  db_end_transaction();
-
-  printf("\rinsert into db... 100%%\n");
-  fflush(stdout);
-  printf("update db in %4.2f seconds\n", 
-         (clock() - cStartClock) / (double)CLOCKS_PER_SEC);
-}*/
 
 bool receive_history = true;
 int frame_id = 0;
@@ -192,7 +156,7 @@ static int process_frame(int dev_id, unsigned char *frame)
       if(receive_history && frame_id < HISTORY_SIZE)
       {
         if(frame_id == 0)
-          printf("downloading history...\n");
+          printf("OWL-CM160 sends last month data the first time it's connected.\nSkipping history data before reading live values...\n");
         else if(frame_id%10 == 0)
         { // print progression status
           // rough estimation : we should received a month of history
@@ -220,12 +184,9 @@ static int process_frame(int dev_id, unsigned char *frame)
       if(receive_history)
       { // When we receive the first live data, 
         // we know that the history is totally downloaded
-        printf("\rdownloading history... 100%%\n");
+        printf("History download complete. Receiving live values from now on\n");
         fflush(stdout);
         receive_history = false;
-        // Now, insert the history into the db
-/*        pthread_t thread;
-        pthread_create(&thread, NULL, (void *)&insert_db_history, (void *)frame_id);*/
       }
       
       process_live_data(&rec);
@@ -328,7 +289,7 @@ int main(int argc, char **argv)
     dev_cnt = 0;
     receive_history = true;
     frame_id = 0;
-    printf("Wait for cm160 device to be connected\n");
+    printf("Waiting for cm160 device to be connected\n");
     while((dev_cnt = scan_usb()) == 0)
       sleep(2);
     printf("Found %d compatible device%s\n", dev_cnt, dev_cnt>1?"s":"");
