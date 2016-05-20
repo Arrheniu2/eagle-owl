@@ -34,9 +34,9 @@
 //#include "db.h"
 #include "demonize.h"
 
-static char ID_MSG[11] = { 
+static char ID_MSG[11] = {
       0xA9, 0x49, 0x44, 0x54, 0x43, 0x4D, 0x56, 0x30, 0x30, 0x31, 0x01 };
-static char WAIT_MSG[11] = { 
+static char WAIT_MSG[11] = {
       0xA9, 0x49, 0x44, 0x54, 0x57, 0x41, 0x49, 0x54, 0x50, 0x43, 0x52 };
 
 
@@ -57,7 +57,7 @@ static char WAIT_MSG[11] = {
 struct cm160_device g_devices[MAX_DEVICES];
 static unsigned char history[HISTORY_SIZE][11];
 
-static void process_live_data(struct record_data *rec) 
+static void process_live_data(struct record_data *rec)
 {
   static double _watts = -1;
   double w = rec->watts;
@@ -75,7 +75,7 @@ static void process_live_data(struct record_data *rec)
   if(fp)
   {
     if(rec->hour!=255) // to avoid writing strange values (i.e. date 2255, hour 255:255) that sometimes I got
-      fprintf(fp, "%02d/%02d/%04d %02d:%02d - %.02f kW\n", 
+      fprintf(fp, "%02d/%02d/%04d %02d:%02d - %.02f kW\n",
               rec->day, rec->month, rec->year, rec->hour, rec->min, w);
     fclose(fp);
   }*/
@@ -106,7 +106,7 @@ static int process_frame(int dev_id, unsigned char *frame)
   int i;
   unsigned char data[1];
   unsigned int checksum = 0;
-  static int last_valid_month = 0; 
+  static int last_valid_month = 0;
   usb_dev_handle *hdev = g_devices[dev_id].hdev;
   int epout = g_devices[dev_id].epout;
 
@@ -138,7 +138,7 @@ static int process_frame(int dev_id, unsigned char *frame)
     checksum &= 0xff;
     if(checksum != frame[10])
     {
-      printf("data error: invalid checksum: expected 0x%x, got 0x%x\n", 
+      printf("data error: invalid checksum: expected 0x%x, got 0x%x\n",
              frame[10], checksum);
       return -1;
     }
@@ -182,13 +182,13 @@ static int process_frame(int dev_id, unsigned char *frame)
     else
     {
       if(receive_history)
-      { // When we receive the first live data, 
+      { // When we receive the first live data,
         // we know that the history is totally downloaded
         printf("History download complete. Receiving live values from now on\n");
         fflush(stdout);
         receive_history = false;
       }
-      
+
       process_live_data(&rec);
       printf("LIVE: %02d/%02d/%04d %02d:%02d : %f W\n",
              rec.day, rec.month, rec.year, rec.hour, rec.min, rec.watts);
@@ -237,7 +237,7 @@ static int handle_device(int dev_id)
   usb_dev_handle *hdev = g_devices[dev_id].hdev;
 
   usb_detach_kernel_driver_np(hdev, 0);
-  
+
   if( 0 != (r = usb_set_configuration(hdev, dev->config[0].bConfigurationValue)) )
   {
     printf("usb_set_configuration returns %d (%s)\n", r, usb_strerror());
@@ -262,16 +262,16 @@ static int handle_device(int dev_id)
 
   // Set baudrate
   int baudrate = 250000;
-  r = usb_control_msg(hdev, USB_TYPE_VENDOR | USB_RECIP_INTERFACE | USB_ENDPOINT_OUT, 
+  r = usb_control_msg(hdev, USB_TYPE_VENDOR | USB_RECIP_INTERFACE | USB_ENDPOINT_OUT,
                       CP210X_IFC_ENABLE, UART_ENABLE, 0, NULL, 0, 500);
-  r = usb_control_msg(hdev, USB_TYPE_VENDOR | USB_RECIP_INTERFACE | USB_ENDPOINT_OUT, 
+  r = usb_control_msg(hdev, USB_TYPE_VENDOR | USB_RECIP_INTERFACE | USB_ENDPOINT_OUT,
                       CP210X_SET_BAUDRATE, 0, 0, (char *)&baudrate, sizeof(baudrate), 500);
-  r = usb_control_msg(hdev, USB_TYPE_VENDOR | USB_RECIP_INTERFACE | USB_ENDPOINT_OUT, 
+  r = usb_control_msg(hdev, USB_TYPE_VENDOR | USB_RECIP_INTERFACE | USB_ENDPOINT_OUT,
                       CP210X_IFC_ENABLE, UART_DISABLE, 0, NULL, 0, 500);
-  
+
 // read/write main loop
   io_loop(dev_id);
- 
+
   usb_release_interface(hdev, 0);
   return 0;
 }
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
       //db_close();
       break;
     }
-    handle_device(0); 
+    handle_device(0);
     usb_close(g_devices[0].hdev);
     //db_close();
   }

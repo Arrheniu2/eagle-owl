@@ -8,7 +8,7 @@ CFLAGS	:= -W -Wall -Wno-multichar -O3 #-Werror
 LDFLAGS :=
 LIBS	:= -lusb -lpthread -ldl
 
-OBJ_CM160 := cm160.o usb_utils.o demonize.o 
+OBJ_CM160 := cm160.o usb_utils.o demonize.o
 
 all: $(CM160) $(DB_IMPORT)
 
@@ -19,5 +19,5 @@ $(CM160): $(OBJ_CM160)
 	$(LD) $(LDFLAGS) -o $@ $(OBJ_CM160) $(LIBS)
 
 clean:
-	-$(RM) *.o 
+	-$(RM) *.o
 	-$(RM) $(CM160)
