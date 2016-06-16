@@ -6,7 +6,7 @@ CC	:= $(CROSS_COMPILE)gcc
 LD	:= $(CROSS_COMPILE)gcc
 CFLAGS	:= -W -Wall -Wno-multichar -O3 #-Werror
 LDFLAGS :=
-LIBS	:= -lusb -lpthread -ldl
+LIBS	:= -lusb -lconfig -lpthread -ldl
 
 OBJ_CM160 := cm160.o usb_utils.o demonize.o
 
