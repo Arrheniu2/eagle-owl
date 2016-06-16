@@ -47,6 +47,11 @@ struct record_data {
                    // or the mean consumption (for the DB)
 };
 
+struct settings {
+    char *install_path;
+    char *output_file_path;
+};
+
 // CM160 protocol
 #define FRAME_ID_LIVE 0x51
 #define FRAME_ID_DB   0x59 // value used to store in the DB (ch1_kw_avg)

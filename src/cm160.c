@@ -58,6 +58,9 @@ static char WAIT_MSG[11] = {
 struct cm160_device g_devices[MAX_DEVICES];
 static unsigned char history[HISTORY_SIZE][11];
 
+struct settings st;
+FILE *fout=NULL;
+
 static void process_live_data(struct record_data *rec)
 {
   static double _watts = -1;
@@ -193,6 +196,8 @@ static int process_frame(int dev_id, unsigned char *frame)
       process_live_data(&rec);
       printf("LIVE: %02d/%02d/%04d %02d:%02d : %f W\n",
              rec.day, rec.month, rec.year, rec.hour, rec.min, rec.watts);
+      if (st.output_file_path!=NULL)
+          fprintf(fout,"%04d%02d%02d-%02d:%02d: %f W\n",rec.year,rec.month,rec.day,rec.hour,rec.min,rec.watts);
     }
   }
   return 0;
@@ -285,7 +290,6 @@ void read_configuration(void) {
 int main(int argc, char **argv)
 {
   config_t cfg, *cf;
-  char install_path[1000];
   const char *buf=NULL;
 
 
@@ -296,13 +300,23 @@ int main(int argc, char **argv)
   if (config_read_file(cf,"/etc/eagleowl.conf")) {
       // If it exists, use the values there
       if (config_lookup_string(cf,"install_path",&buf)) {
-          strcpy(install_path,buf);
-          printf("Install path: %s\n",install_path);
+          st.install_path=(char *)buf;
+          printf("Install path: %s\n",st.install_path);
+      }
+      if (config_lookup_string(cf,"output_file_path",&buf)) {
+          st.output_file_path=(char *)buf;
+          printf("Output file: %s\n",st.output_file_path);
+          // Open file for further writes
+          if ((fout=fopen(st.output_file_path,"at"))==NULL) {
+              fprintf(stderr,"Can't open output file %s\n",st.output_file_path);
+              return(EXIT_FAILURE);
+          }
       }
   }
   else {
-      fprintf(stderr,"No configuration file: %s\n",config_error_text(cf));
-      return(EXIT_FAILURE);
+      fprintf(stderr,"Warning, no configuration file defined or bad syntax: %s\n",config_error_text(cf));
+      st.output_file_path=NULL;
+      st.install_path=NULL;
   }
 
 
@@ -334,6 +348,8 @@ int main(int argc, char **argv)
   }
 
   config_destroy(cf);
+  if (fout!=NULL)
+      fclose(fout);
   return 0;
 }
 
