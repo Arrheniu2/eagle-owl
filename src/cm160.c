@@ -196,8 +196,10 @@ static int process_frame(int dev_id, unsigned char *frame)
       process_live_data(&rec);
       printf("LIVE: %02d/%02d/%04d %02d:%02d : %f W\n",
              rec.day, rec.month, rec.year, rec.hour, rec.min, rec.watts);
-      if (st.output_file_path!=NULL)
+      if (st.output_file_path!=NULL) {
           fprintf(fout,"%04d%02d%02d-%02d:%02d: %f W\n",rec.year,rec.month,rec.day,rec.hour,rec.min,rec.watts);
+          fflush(fout);
+      }
     }
   }
   return 0;
