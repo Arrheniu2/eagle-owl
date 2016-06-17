@@ -62,6 +62,7 @@ static unsigned char history[HISTORY_SIZE][11];
 struct settings st;
 FILE *fout=NULL;
 struct mosquitto *mosq=NULL;
+config_t cfg, *cf;
 
 static void process_live_data(struct record_data *rec)
 {
@@ -302,59 +303,58 @@ static int handle_device(int dev_id)
 
 
 void read_configuration(void) {
+	const char *buf=NULL;
+
+	cf=&cfg;
+	config_init(cf);
+
+	// Set defaults for settings
+	st.install_path=NULL;
+	st.output_file_path=NULL;
+	st.mqtt_host=NULL;
+	st.mqtt_port=1883;
+	st.mqtt_topic="eagleowl/w";
+
+	// Look for a config file in /etc
+	if (config_read_file(cf,"/etc/eagleowl.conf")) {
+		// If it exists, use the values there
+		if (config_lookup_string(cf,"install_path",&buf))
+			st.install_path=(char *)buf;
+		if (config_lookup_string(cf,"output_file_path",&buf)) {
+			st.output_file_path=(char *)buf;
+			// Open file for further writes
+			if ((fout=fopen(st.output_file_path,"at"))==NULL) {
+				fprintf(stderr,"Can't open output file %s\n",st.output_file_path);
+				exit(EXIT_FAILURE);
+			}
+		}
+		if (config_lookup_string(cf,"mqtt_host",&buf))
+			st.mqtt_host=(char *)buf;
+		if (config_lookup_int(cf,"mqtt_port",&st.mqtt_port)==CONFIG_FALSE)
+			st.mqtt_port=1883;
+		if (config_lookup_string(cf,"mqtt_topic",&buf))
+			st.mqtt_topic=(char *)buf;
+	}
+	else {
+		fprintf(stderr,"Warning, no configuration file defined or bad syntax: %s\n",config_error_text(cf));
+	}
+
+	// Print configuration
+	printf("Settings:\n");
+	printf("  Install path: %s\n",st.install_path);
+	if (st.output_file_path!=NULL)
+		printf("  File output enabled, filename: %s\n",st.output_file_path);
+	if (st.mqtt_host!=NULL) 
+		printf("  MQTT support enabled, will publish to %s:%d, topic %s\n",st.mqtt_host,st.mqtt_port,st.mqtt_topic);
 
 }
 
 int main(int argc, char **argv)
 {
-  config_t cfg, *cf;
-  const char *buf=NULL;
-
-  // Set defaults for settings
-  st.install_path=NULL;
-  st.output_file_path=NULL;
-  st.mqtt_host=NULL;
-  st.mqtt_port=1883;
-  st.mqtt_topic="eagleowl/w";
-
-  cf=&cfg;
-  config_init(cf);
-
-  // Look for a config file in /etc
-  if (config_read_file(cf,"/etc/eagleowl.conf")) {
-      // If it exists, use the values there
-      if (config_lookup_string(cf,"install_path",&buf)) {
-          st.install_path=(char *)buf;
-          printf("Install path: %s\n",st.install_path);
-      }
-      if (config_lookup_string(cf,"output_file_path",&buf)) {
-          st.output_file_path=(char *)buf;
-          printf("Output file: %s\n",st.output_file_path);
-          // Open file for further writes
-          if ((fout=fopen(st.output_file_path,"at"))==NULL) {
-              fprintf(stderr,"Can't open output file %s\n",st.output_file_path);
-              return(EXIT_FAILURE);
-          }
-      }
-      if (config_lookup_string(cf,"mqtt_host",&buf)) {
-	  st.mqtt_host=(char *)buf;
-          printf("MQTT host: %s\n",st.mqtt_host);
-      }
-      if (config_lookup_int(cf,"mqtt_port",&st.mqtt_port)==CONFIG_FALSE)
-	  st.mqtt_port=1883;
-      if (config_lookup_string(cf,"mqtt_topic",&buf)) {
-	  st.mqtt_topic=(char *)buf;
-          printf("MQTT topic: %s\n",st.mqtt_topic);
-      }
-
-  }
-  else {
-      fprintf(stderr,"Warning, no configuration file defined or bad syntax: %s\n",config_error_text(cf));
-  }
+	read_configuration();
 
   // If MQTT support is enabled, initialize the library
   if (st.mqtt_host!=NULL) {
-	  printf("MQTT support enabled, watt values will be sent to broker %s:%d on topic %s\n",st.mqtt_host,st.mqtt_port,st.mqtt_topic);
 	  mosquitto_lib_init();
 	  mosq=mosquitto_new(NULL,true,NULL);
   }
@@ -386,7 +386,6 @@ int main(int argc, char **argv)
     //db_close();
   }
 
-  config_destroy(cf);
   if (fout!=NULL)
       fclose(fout);
 
@@ -394,6 +393,8 @@ int main(int argc, char **argv)
 	  mosquitto_destroy(mosq);
 	  mosquitto_lib_cleanup();
   }
+  config_destroy(cf);
+
   return 0;
 }
 
