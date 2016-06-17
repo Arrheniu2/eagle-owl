@@ -50,6 +50,9 @@ struct record_data {
 struct settings {
     char *install_path;
     char *output_file_path;
+    char *mqtt_host;
+    int mqtt_port;
+    char *mqtt_topic;
 };
 
 // CM160 protocol

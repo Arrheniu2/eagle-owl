@@ -26,6 +26,7 @@
 #include <libconfig.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <mosquitto.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -60,6 +61,7 @@ static unsigned char history[HISTORY_SIZE][11];
 
 struct settings st;
 FILE *fout=NULL;
+struct mosquitto *mosq=NULL;
 
 static void process_live_data(struct record_data *rec)
 {
@@ -196,10 +198,24 @@ static int process_frame(int dev_id, unsigned char *frame)
       process_live_data(&rec);
       printf("LIVE: %02d/%02d/%04d %02d:%02d : %f W\n",
              rec.day, rec.month, rec.year, rec.hour, rec.min, rec.watts);
+	  // Write value to disk (if enabled)
       if (st.output_file_path!=NULL) {
           fprintf(fout,"%04d%02d%02d-%02d:%02d: %f W\n",rec.year,rec.month,rec.day,rec.hour,rec.min,rec.watts);
           fflush(fout);
       }
+	  // Send value to MQTT broker (if enabled)
+	  if (st.mqtt_host!=NULL) {
+		  char aux[100];
+		  sprintf(aux,"%f",rec.watts);
+		  if (mosquitto_connect(mosq,st.mqtt_host,st.mqtt_port,5)==MOSQ_ERR_SUCCESS) {
+			  mosquitto_publish(mosq,NULL,st.mqtt_topic,strlen(aux),aux,0,false);
+			  mosquitto_disconnect(mosq);
+		  }
+		  else {
+			  printf("Error connecting to MQTT broker\n");
+		  }
+	  }
+
     }
   }
   return 0;
@@ -294,6 +310,12 @@ int main(int argc, char **argv)
   config_t cfg, *cf;
   const char *buf=NULL;
 
+  // Set defaults for settings
+  st.install_path=NULL;
+  st.output_file_path=NULL;
+  st.mqtt_host=NULL;
+  st.mqtt_port=1883;
+  st.mqtt_topic="eagleowl/w";
 
   cf=&cfg;
   config_init(cf);
@@ -314,13 +336,28 @@ int main(int argc, char **argv)
               return(EXIT_FAILURE);
           }
       }
+      if (config_lookup_string(cf,"mqtt_host",&buf)) {
+	  st.mqtt_host=(char *)buf;
+          printf("MQTT host: %s\n",st.mqtt_host);
+      }
+      if (config_lookup_int(cf,"mqtt_port",&st.mqtt_port)==CONFIG_FALSE)
+	  st.mqtt_port=1883;
+      if (config_lookup_string(cf,"mqtt_topic",&buf)) {
+	  st.mqtt_topic=(char *)buf;
+          printf("MQTT topic: %s\n",st.mqtt_topic);
+      }
+
   }
   else {
       fprintf(stderr,"Warning, no configuration file defined or bad syntax: %s\n",config_error_text(cf));
-      st.output_file_path=NULL;
-      st.install_path=NULL;
   }
 
+  // If MQTT support is enabled, initialize the library
+  if (st.mqtt_host!=NULL) {
+	  printf("MQTT support enabled, watt values will be sent to broker %s:%d on topic %s\n",st.mqtt_host,st.mqtt_port,st.mqtt_topic);
+	  mosquitto_lib_init();
+	  mosq=mosquitto_new(NULL,true,NULL);
+  }
 
   int dev_cnt;
   if(argc>1 && (strcmp(argv[1], "-d")==0) )
@@ -352,6 +389,11 @@ int main(int argc, char **argv)
   config_destroy(cf);
   if (fout!=NULL)
       fclose(fout);
+
+  if (st.mqtt_host!=NULL) {
+	  mosquitto_destroy(mosq);
+	  mosquitto_lib_cleanup();
+  }
   return 0;
 }
 
