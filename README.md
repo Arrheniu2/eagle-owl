@@ -1,8 +1,8 @@
 Why this fork?
 ==============
 
-This is my fork of cornetp/eagle-owl. Eagleowl is already a fantastic piece of software, but it's quite oriented to be 
-executed as a desktop program. Since what I need are just get the power values from a Raspberry Pi, in order to send them 
+This is my fork of cornetp/eagle-owl. Eagleowl is already a fantastic piece of software, but it's quite oriented to be
+executed as a desktop program. Since what I need are just get the power values from a Raspberry Pi, in order to send them
 to external services, I've made some changes to the code:
 
 - Removed Sqlite DB support amb web interface.
@@ -11,11 +11,11 @@ to external services, I've made some changes to the code:
   - Text file: Power readings will be written to a simple text file, one per line.
   - MQTT: Publish power values to a MQTT host
   - System command: Custom command to be executed for every power value (NOT IMPLEMENTED YET)
-- Updated configuration file syntax, in order to support all new options, and use standard config file parsing mechanisms 
+- Updated configuration file syntax, in order to support all new options, and use standard config file parsing mechanisms
 (libconfig)
 
 Those new output options allow things impossible to achieve with official version, like minimal disk writing, or even no
-disk writing at all (using MQTT to publish power values), thus allowing eagle-owl to be executed from a read only file 
+disk writing at all (using MQTT to publish power values), thus allowing eagle-owl to be executed from a read only file
 system. Text file support also makes easier to get raw power values, without the need of sqlite queries or complex shell
 script acrobatics (using screen or similar tools).
 
