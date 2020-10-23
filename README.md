@@ -7,5 +7,6 @@ What's changed
 ==============
 added option :
 
+mqtt_user="mqttuser"
 mqtt_password="mqttpassword"
 
