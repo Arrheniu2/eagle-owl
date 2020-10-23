@@ -208,6 +208,7 @@ static int process_frame(int dev_id, unsigned char *frame)
 	  if (st.mqtt_host!=NULL) {
 		  char aux[100];
 		  sprintf(aux,"%f",rec.watts);
+          mosquitto_username_pw_set(mosq,st.mqtt_user,st.mqtt_password);
 		  if (mosquitto_connect(mosq,st.mqtt_host,st.mqtt_port,5)==MOSQ_ERR_SUCCESS) {
 			  mosquitto_publish(mosq,NULL,st.mqtt_topic,strlen(aux),aux,0,false);
 			  mosquitto_disconnect(mosq);
@@ -311,9 +312,11 @@ void read_configuration(void) {
 	// Set defaults for settings
 	st.install_path=NULL;
 	st.output_file_path=NULL;
-	st.mqtt_host=NULL;
+	st.mqtt_host="localhost";
 	st.mqtt_port=1883;
 	st.mqtt_topic="eagleowl/w";
+        st.mqtt_user=NULL;
+        st.mqtt_password=NULL;
 
 	// Look for a config file in /etc
 	if (config_read_file(cf,"/etc/eagleowl.conf")) {
@@ -334,9 +337,17 @@ void read_configuration(void) {
 			st.mqtt_port=1883;
 		if (config_lookup_string(cf,"mqtt_topic",&buf))
 			st.mqtt_topic=(char *)buf;
+		if (config_lookup_string(cf,"mqtt_user",&buf))
+			st.mqtt_user=(char *)buf;
+		if (config_lookup_string(cf,"mqtt_password",&buf))
+			st.mqtt_password=(char *)buf;
 	}
 	else {
 		fprintf(stderr,"Warning, no configuration file defined or bad syntax: %s\n",config_error_text(cf));
+		fprintf(stderr, "%s:%d - %s\n",
+			config_error_file(cf),
+			config_error_line(cf),
+			config_error_text(cf));
 	}
 
 	// Print configuration
@@ -397,4 +408,5 @@ int main(int argc, char **argv)
 
   return 0;
 }
+
 

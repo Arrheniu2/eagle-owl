@@ -53,6 +53,8 @@ struct settings {
     char *mqtt_host;
     int mqtt_port;
     char *mqtt_topic;
+    char *mqtt_user;
+    char *mqtt_password;
 };
 
 // CM160 protocol
